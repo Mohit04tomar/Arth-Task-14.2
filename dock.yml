@@ -1,0 +1,68 @@
+- hosts: localhost
+  tasks:
+          - name: "Downloading and Installing Python-3"
+            package:
+                    name: python3
+                    state: present
+
+          - name: "Downloading and Installing Downloading docker-py "
+            pip:
+                    name: docker
+                    state: present
+
+          - name: "Downloading and Installing Docker"
+            package:
+                    name: docker
+                    state: present
+
+          - name: "Starting Docker Service"
+            service:
+                    name: "docker"
+                    state: started
+                    enabled: yes
+
+          - name: "Pulling Custom Docker Image"
+            docker_image:
+                    name: mohitsinghtomar/centosssh:latest
+                    source: pull
+
+          - name: "Launching Docker Custom Centos Container"
+            docker_container:
+                    name: "WebOS"
+                    image: "mohitsinghtomar/centosssh:latest"
+                    exposed_ports: "80"
+                    ports: "8080:80"
+                    state: started
+                    interactive: yes
+            register: result
+
+          - name: "Does container exist?"
+            debug:
+                    var: result.container.NetworkSettings.IPAddress
+
+          - name: "Updating Inventory of Ansible with Docker Container IP Address"
+            blockinfile:
+                    path: /etc/ansible/hosts
+                    block: |
+                           [docker]
+                           {{  result.container.NetworkSettings.IPAddress  }} ansible_ssh_user=root ansible_ssh_pass=redhat
+
+- hosts: docker
+  tasks:
+          - name: "Installing httpd or Apache Server"
+            package:
+                    name: "httpd"
+                    state: present
+
+          - name: "Copying Webpages"
+            template:
+                  src: "/Arth-Task-14.2/index.html.j2"
+                  dest: "/var/www/html/index.html"
+            register: x
+
+          - name: "Statring HTTPD"
+            command: "/usr/sbin/httpd"
+
+
+
+
